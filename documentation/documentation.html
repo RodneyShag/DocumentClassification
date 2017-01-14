@@ -1,0 +1,286 @@
+
+<!-- saved from url=(0060)http://slazebni.cs.illinois.edu/fall15/assignment3.html#text -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252"><title>CS440 Assignment 3</title>
+<style type="text/css"></style></head>
+<body bgcolor="white">
+<table width="800">
+<tbody><tr>
+<td>
+<h2>CS440 Fall 2015</h2> 
+<h2>Assignment 3: Naive Bayes Classification</h2>
+<h3><font color="red">Due date: Monday, November 16, 11:59:59 PM</font></h3>
+
+The goal of this assignment is to implement a Naive Bayes classifier as described
+in <a href="http://web.engr.illinois.edu/~slazebni/fall15/lec12_bayesian_inference.pptx">this lecture</a> and to apply it to
+the task of classifying visual patterns and text documents. As before, you can
+work in teams of up to three people (three-unit students with three-unit students, 
+four-unit students with four-unit students).
+
+<h3>Contents</h3>
+
+<ul>
+<li>Part 1: <a href="http://slazebni.cs.illinois.edu/fall15/assignment3.html#digit">Digit classification</a>
+<ul style="list-style-type:disc">
+<li>  Part 1.1 (for everybody): <a href="http://slazebni.cs.illinois.edu/fall15/assignment3.html#single">Single pixels as features</a></li>
+<li>  Part 1.2 (for four-unit students): <a href="http://slazebni.cs.illinois.edu/fall15/assignment3.html#group">Pixel groups as features</a></li>
+</ul>
+</li>
+<li>Part 2: <a href="http://slazebni.cs.illinois.edu/fall15/assignment3.html#text">Text document classification</a>
+<ul style="list-style-type:disc">
+<li>  Part 2.1 (for everybody): <a href="http://slazebni.cs.illinois.edu/fall15/assignment3.html#text1">Spam classification and sentiment analysis</a> 
+</li><li>  Part 2.2 (for four-unit students): <a href="http://slazebni.cs.illinois.edu/fall15/assignment3.html#text2">8 newsgroups dataset</a></li></ul>
+</li>
+<li><a href="http://slazebni.cs.illinois.edu/fall15/assignment3.html#checklist">Report checklist</a>
+</li><li><a href="http://slazebni.cs.illinois.edu/fall15/assignment3.html#submission">Submission instructions</a>
+</li></ul>
+
+<a name="digit">
+<h3>Part 1: Digit classification</h3>
+
+<img src="./documentation_files/digits.gif"><br><br>
+<small>(Adapted from </small></a><small><a href="http://inst.eecs.berkeley.edu/~cs188/sp11/projects/classification/classification.html">Berkeley CS 188 project 5</a>)</small><br><br>
+
+<b>Data:</b> <a href="http://slazebni.cs.illinois.edu/fall15/assignment3/digitdata.zip">This file</a> is a zip archive containing
+training and test digits, together with their ground truth labels (see readme.txt in the zip
+archive for an explanation of the data format). There are 5000 training exemplars (roughly 500
+per class) and 1000 test exemplars (roughly 100 per class).<br><br>
+
+<a name="single">
+<h4>Part 1.1 (for everybody): Single pixels as features</h4>
+
+<ul>
+<li><b>Features:</b> The basic feature set consists of a single binary indicator feature 
+for each pixel. Specifically, the feature F<sub>ij</sub> indicates the status of the (i,j)th
+pixel. Its value is 1 if the pixel is foreground (no need to distinguish between the two different
+foreground values), and 0 if it is background. The images are of size 28*28, so there are 
+784 features in total.<br><br></li>
+
+<li><b>Training:</b> The goal of the training stage is to estimate the <b>likelihoods
+<font color="blue">P(F<sub>ij</sub> | class)</font></b> for every pixel location (i,j) and for every 
+digit class from 0 to 9. The likelihood estimate is defined as<br><br>
+
+<font color="blue"><b>P(F<sub>ij</sub> = f | class) = (# of times pixel (i,j) has value f in training examples from this class) / 
+(Total # of training examples from this class).</b></font><br><br>
+
+In addition, as discussed in the lecture, you have to <b>smooth</b> the likelihoods to 
+ensure that there are no zero counts. <em>Laplace smoothing</em> is a very simple method
+that increases the observation count of every value f by some constant k. This corresponds to adding
+k to the numerator above, and k*V to the denominator (where V is the number of possible 
+values the feature can take on). The higher the value of k, the stronger the smoothing. Experiment with different integer
+values of k (say, from 1 to 50) and find the one that gives the highest classification accuracy.<br><br>
+
+You should also estimate the <b>priors <font color="blue">P(class)</font></b> by the empirical
+frequencies of different classes in the training set.<br><br></li>
+
+<li><b>Testing:</b> You will perform <b>maximum a posteriori (MAP)</b> classification of test digits
+according to the learned Naive Bayes model. Suppose a test image has feature values f<sub>1,1</sub>,
+f<sub>1,2</sub>, ... , f<sub>28,28</sub>. According to this model, the posterior probability (up to scale)
+of each class given the digit is given by<br><br>
+
+<b><font color="blue">P(class) &#8901; P(f<sub>1,1</sub> | class) &#8901; P(f<sub>1,2</sub> | class) &#8901; ... &#8901; 
+P(f<sub>28,28</sub> | class).</font></b><br><br>
+
+Note that in order to avoid underflow, it is standard to work with the log of the above quantity:<br><br>
+
+<b><font color="blue">log P(class) + log P(f<sub>1,1</sub> | class) + log P(f<sub>1,2</sub> | class) + ... +
+log P(f<sub>28,28</sub> | class).</font></b><br><br>
+
+After you compute the above decision function values for all ten classes for every test image, you will use
+them for MAP classification.<br><br></li>
+
+<li><b>Evaluation:</b> Use the true class labels of the test images from the <tt>testlabels</tt>
+file to check the correctness of the estimated label for each test digit. Report your performance in terms
+of the <b>classification rate for each digit</b> (percentage of all test images of a given digit correctly
+classified). Also report your <b>confusion matrix</b>. This is a 10x10 matrix whose entry in row r and column c
+is the percentage of test images from class r that are classified as class c. In addition, for each digit class,
+show the test examples from that class that have the highest and the lowest posterior probabilities
+according to your classifier. You can think of these as the most and least "prototypical" instances of each digit class
+(and the least "prototypical" one is probably misclassified).
+<br><br>
+
+<b><font color="red">Important:</font></b> The ground truth labels of test images should be used <em>only</em>
+to evaluate classification accuracy. They should not be used in any way during the decision process.<br><br>
+
+<b><font color="red">Tip:</font></b> You should be able to achieve at least 70% accuracy on the test set.
+One "warning sign" that you have a bug in your implementation is if some digit gets 100% or 0% classification
+accuracy (that is, your system either labels all the test images as the same class, or never wants to label
+any test images as some particular class).<br><br></li>
+
+<li><b>Odds ratios:</b> When using classifiers in real domains, it is important to be able to inspect
+what they have learned. One way to inspect a naive Bayes model is to look at the most likely features for a given label.
+Another tool for understanding the parameters is to look at odds ratios. For each pixel feature 
+F<sub>ij</sub> and pair of classes c<sub>1</sub>, c<sub>2</sub>, the odds ratio is defined as <br><br>
+
+<b><font color="blue">odds(F<sub>ij</sub>=1, c<sub>1</sub>, c<sub>2</sub>) = 
+P(F<sub>ij</sub>=1 | c<sub>1</sub>) / P(F<sub>ij</sub>=1 | c<sub>2</sub>).</font></b><br><br>
+
+This ratio will be greater than one for features which cause belief in c<sub>1</sub> to increase over
+the belief in c<sub>2</sub>. The features that have the greatest impact on classification are those 
+with both a high probability (because they appear often in the data) and a high odds ratio 
+(because they strongly bias one label versus another).<br><br>
+
+Take four pairs of digits that have the highest confusion rates according to your confusion matrix,
+and for each pair, display the maps of feature likelihoods for both classes as well as the odds ratio
+for the two classes. For example, the figure below shows the log likelihood maps for 1 (left), 8 (center),
+and the log odds ratio for 1 over 8 (right):<br><br>
+
+<img src="./documentation_files/odds_1_8.gif"><br><br>
+
+If you cannot do a graphical display like the one above, you can display the maps in ASCII format
+using some coding scheme of your choice. For example, for the odds ratio map, you can use '+' to
+denote features with positive log odds, ' ' for features with log odds close to 1, and '-' for
+features with negative log odds.</li>
+</ul>
+
+</a><a name="group">
+<h4>Part 1.2 (for four-unit students): Pixel groups as features</h4>
+<small>Credit: Yanglei Song</small>
+
+<p>
+Instead of each feature corresponding to a single pixel, we can form features from groups of adjacent pixels. We can view this as a relaxation of the Naive Bayes assumption that allows us to have a more accurate model of the dependencies between the individual random variables. 
+Specifically, consider a 2*2 square of pixels with top left coordinate i,j and define a feature G<sub>i,j</sub> that corresponds to the ordered tuple of the four pixel values. For example, in the figure below, we have<br><br>
+
+<b><font color="blue">G<sub>1,1</sub> = (F<sub>1,1</sub>, F<sub>1,2</sub>, F<sub>2,1</sub>, F<sub>2,2</sub>).</font></b><br><br>
+
+<img src="./documentation_files/groupPixels.png" height="200" width="450"><br><br> 
+
+(The exact ordering of the four pixel values is not important as long as it's consistent throughout your implementation.) Clearly, this feature can have 16 discrete values.
+The 2*2 squares can be disjoint (left side of figure) or overlapping (right side of figure). In the case of disjoint squares, there are 14 * 14 = 196 features; 
+in the case of overlapping squares, there are 27 * 27 = 729 features.<br><br>
+
+We can generalize the above examples of 2*2 features to define features corresponding to n*m disjoint or overlapping pixel patches. An n*m feature will have 2<sup>n*m</sup> distinct values, and as many entries in the conditional probability table for each class. Laplace smoothing applies to these features analogously as to the single pixel features.
+
+</p><p>
+In this part, you should build Naive Bayes classifiers for feature sets of n*m disjoint/overlapping pixel 
+patches and report the following:
+</p><ul>
+<li>Test set accuracies for disjoint patches of size 2*2, 2*4, 4*2, 4*4.
+</li><li>Test set accuracies for overlapping patches of size 2*2, 2*4, 4*2, 4*4, 2*3, 3*2, 3*3.
+</li><li>Discussion of the trends you have observed for the different feature sets (including single pixels), in particular, why certain features work better than others for this task.
+</li><li>Brief discussion of running time for training and testing for the different feature sets (which ones are faster and why, and how does the running time scale with feature set size).
+</li></ul>
+<b><font color="red">Tip:</font></b> You should be able to achieve over 80% accuracy with your best feature set.<br><br>
+
+
+<h3>Part 1 Extra Credit</h3>
+
+</a><ul><a name="group">
+<li>Experiment with yet more features to improve the accuracy of the Naive Bayes model. For example, instead of using binary pixel values, implement ternary features. <br><br>
+</li></a><li><a name="group">Apply your Naive Bayes classifier with various features to this </a><a href="http://slazebni.cs.illinois.edu/fall15/assignment3/facedata.zip">face data</a>. It is in a similar format to that of the digit data, and contains training and test images and binary labels, where 0 corresponds to 'non-face' and 1 corresponds to 'face'. The images themselves are higher-resolution than the digit images, and each pixel value is either '#', corresponding to an edge being found at that location, or ' ', corresponding to a non-edge pixel.
+</li></ul><br><br>
+
+
+<a name="text">
+<h3> Part 2: Text Document Classification</h3>
+
+</a><a name="text1">
+<h4> Part 2.1: For three-unit students</h4>
+
+<small>Sources: </small></a><small><a href="http://openclassroom.stanford.edu/MainFolder/DocumentPage.php?course=MachineLearning&amp;doc=exercises/ex6/ex6.html">spam detection dataset</a>, <a href="http://www.cs.cornell.edu/people/pabo/movie-review-data/">Cornell movie review dataset</a>, <a href="http://qwone.com/~jason/20Newsgroups/">full 20 Newsgroups dataset</a>. With help from Jason Cho, Yanglei Song, Huan Gui, and Keyang Zhang</small>
+
+<p>
+The goal of this part of the assignment is classification of text documents. You will be using the following two datasets:
+
+</p><ul>
+<li><b><a href="http://slazebni.cs.illinois.edu/fall15/assignment3/spam_detection.zip">Spam detection</a></b>
+</li><li><b><a href="http://slazebni.cs.illinois.edu/fall15/assignment3/sentiment.zip">Movie reviews</a></b>
+</li></ul>
+
+Each dataset contains training and test documents that have already been preprocessed into a "bag of words" representation. Each line of the training and test files has the following format:
+<p>
+<tt>[label] [word1]:[count1] [word2]:[count2] ... [wordn]:[countn]</tt>
+
+</p><p>
+The email dataset contains 700 training documents and 260 test documents. Label of 0 denotes normal email, while 1 denotes spam. 
+The movie review dataset has 4000 training documents (2000 positive and 2000 negative), and 1000 test documents (500 positive and 500 negative). Label of -1 denotes a negative review, and label of 1 denotes a positive review.
+
+</p><p>
+For each dataset, train a Naive Bayes classifier on the training data and then apply it to the test data to
+predict the category labels of the test documents. In order to do this, you will first need to create dictionaries consisting of all unique words occurring in the training documents, and then estimate conditional probability tables over these dictionaries for each class. Be sure to use Laplace smoothing. Note that there will be words in the test documents that do not occur in the dictionary; simply ignore those. You should implement the following two Naive Bayes models:
+
+</p><ul>
+<li><b>Multinomial Naive Bayes:</b> This is the model described in <a href="http://slazebni.cs.illinois.edu/fall15/lec12_bayesian_inference.pptx">the lecture</a>, where a document of length N has variables W<sub>1</sub>, ... , W<sub>N</sub> and each variable W<sub>i</sub> takes on values from 1 to V, where V is the size of the vocabulary. You estimate the likelihoods P(W<sub>i</sub> = k | class) by frequency counts, as explained in the lecture.<br><br>
+</li><li><b>Bernoulli Naive Bayes:</b> In this model, every document is described by V binary variables W<sub>1</sub>, ... , W<sub>V</sub>, and W<sub>i</sub> = 1 if word i appears <em>at least once</em> in the document, and 0 otherwise. You estimate the likelihoods P(W<sub>i</sub> = 1 | class) as the proportion of documents from that class that feature the ith word.
+</li></ul>
+
+<p>
+For each of the two models and two datasets, report your classification rate on the test documents for each class, as well as the confusion matrix. You should be able to get over 90% accuracy on the email dataset, and over 70% on the movie dataset.
+Additionally, for each class, report the top 20 words with the highest likelihood. 
+<br><br>
+
+
+<a name="text2">
+</a></p><h4><a name="text2">Part 2.2: For four-unit students</a></h4><a name="text2">
+
+Repeat all the steps of 2.1 for the <b></b></a><b><a href="http://slazebni.cs.illinois.edu/fall15/assignment3/8category.zip">8 newsgroups dataset</a></b>, which is in the same format 
+as the datasets of part 2.1. It contains 1900 training and 263 test documents, and the numeric class labels correspond to the following categories:
+
+<p>
+<tt>
+sci.space<br>
+comp.sys.ibm.pc.hardware<br>
+rec.sport.baseball<br>
+comp.windows.x<br>
+talk.politics.misc<br>
+misc.forsale<br>
+rec.sport.hockey<br>
+comp.graphics<br>
+</tt>
+
+</p><p>
+You should be able to get over 80% accuracy on this dataset.
+
+
+</p><h3>Extra Credit for Part 2</h3>
+
+<ul>
+<li>Experiment with advanced techniques for improving performance of Naive Bayes on this dataset, 
+such as lemmatization and tf-idf weighting (not covered in class).<br><br>
+</li><li>Perform classification on the full <a href="http://qwone.com/~jason/20Newsgroups/">20 Newsgroups dataset</a>.<br><br>
+</li><li>Visualize the bag-of-words representations of the documents using word cloud maps.
+</li></ul><br><br>
+
+
+<a name="checklist">
+<h3>Report Checklist</h3>
+
+<h4>Part 1:</h4>
+<ol class="ol1">
+<li class="li1"> For everybody: 
+<ul>
+<li>Briefly discuss your implementation, especially the choice of the smoothing constant.
+</li><li>Report classification rate for each digit and confusion matrix. 
+</li><li>For each digit, show the test examples from that class that have the highest and lowest posterior probabilities according to your classifier. 
+</li><li>Take four pairs of digits that have the highest confusion rates, and for each pair, display feature likelihoods and odds ratio.
+</li></ul>
+</li><li class="li1"> For four-unit students:
+<ul>
+<li>Report test set accuracies for disjoint patches of size 2*2, 2*4, 4*2, 4*4, and for overlapping patches of size 2*2, 2*4, 4*2, 4*4, 2*3, 3*2, 3*3.
+</li><li>Discuss trends for the different feature sets.
+</li><li>Discuss training and testing running time for different feature sets.
+</li></ul>
+</li></ol>
+
+<h4>Part 2:</h4>
+<ol class="ol1">
+<li class="li1"> For everybody: For multinomial and Bernoulli models, and for both datasets, report 
+the classification rate for each class and show the confusion matrix. For each class, give the top 20 words with the highest likelihood. 
+</li><li class="li1"> For four-unit students: report the same items as for 2.1 on the 8 newsgroups dataset.
+</li></ol>
+
+<h4>Extra credit:</h4>
+
+<ul><li>
+We reserve the right to give <b>bonus points</b> for any advanced
+exploration or especially challenging or creative solutions that you implement.
+Three-unit students always get extra credit for submitting solutions to four-unit problems.
+<b><font color="red">If you submit any work for bonus points, be sure it is clearly indicated in your report.</font></b></li></ul>
+
+
+
+</p></td></tr></tbody></table>
+
+
+
+
+</body></html>
