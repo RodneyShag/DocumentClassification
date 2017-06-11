@@ -1,7 +1,7 @@
 # DocumentClassification
 Spam classification and sentiment analysis.
 
-##Goals:
+## Goals:
 1) **Spam Classification:** Partition emails into 2 categories depending on whether they contain spam or not.<br/>
 2) **Sentiment Analysis:** Partition movie reviews into 2 categories depending on whether they are positive or negative reviews.
 
